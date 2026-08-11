@@ -71,7 +71,6 @@ const seedDb = (seeds: Seed[]) => {
       sessionId: "session-1",
       cwd: "/home/user/project-a",
       gitBranch: "main",
-      isSidechain: 0,
       agentId: null,
       attributionAgent: null,
       inputTokens: 0,
