@@ -4,6 +4,21 @@
   "description": "Parser, pricing, and aggregation engine for tokkaebi",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Guksu/tokkaebi.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/Guksu/tokkaebi#readme",
+  "keywords": [
+    "claude-code",
+    "token-usage",
+    "cost-tracking",
+    "local-first"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -19,7 +34,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "better-sqlite3": "^13.0.3",
+    "better-sqlite3": "^12.11.1",
     "fast-glob": "^3.3.3",
     "zod": "^4.4.3"
   },
