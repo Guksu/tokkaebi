@@ -1,0 +1,8 @@
+{"type":"summary","summary":"A session about parsing","leafUuid":"00000000-0000-4000-8000-00000000c001"}
+{"type":"user","uuid":"00000000-0000-4000-8000-00000000c002","sessionId":"00000000-0000-4000-8000-000000000008","timestamp":"2026-08-09T10:00:00.000Z","cwd":"/home/user/project-a","userType":"external","isSidechain":false,"message":{"role":"user","content":"hello"}}
+{"type":"system","subtype":"hook_event","uuid":"00000000-0000-4000-8000-00000000c003","timestamp":"2026-08-09T10:00:01.000Z","cwd":"/home/user/project-a","sessionId":"00000000-0000-4000-8000-000000000008","isMeta":true,"durationMs":12}
+{"type":"started","agentId":"a1","key":"k1"}
+
+{"isSidechain":false,"userType":"external","cwd":"/home/user/project-a","sessionId":"00000000-0000-4000-8000-000000000008","version":"2.1.227","gitBranch":"main","message":{"id":"msg_mixed_001","type":"message","role":"assistant","model":"claude-fable-5","content":[{"type":"text","text":"ok"}],"usage":{"input_tokens":7,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":3,"service_tier":"standard","cache_creation":{"ephemeral_1h_input_tokens":0,"ephemeral_5m_input_tokens":0},"inference_geo":"not_available"}},"requestId":"req_mixed_001","type":"assistant","uuid":"00000000-0000-4000-8000-00000000c005","timestamp":"2026-08-09T10:00:02.000Z"}
+{"type":"result","agentId":"a1","key":"k1","result":"done"}
+{"type":"file-history-snapshot","messageId":"00000000-0000-4000-8000-00000000c006","snapshot":{"trackedFileBackups":{}}}
