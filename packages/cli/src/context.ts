@@ -32,10 +32,14 @@ export const createContext = async ({
     syncReport = await syncUsage({ db, claudeProjectsDir: getClaudeProjectsDir() });
     if (!quiet) {
       const seconds = ((Date.now() - startedAt) / 1000).toFixed(1);
+      const added =
+        syncReport.newRecords > 0
+          ? pc.green(`+${syncReport.newRecords.toLocaleString("en-US")}건 수집`)
+          : pc.dim("새 기록 없음");
       console.log(
-        pc.dim(
-          `✔ synced ${syncReport.filesScanned} files · +${syncReport.newRecords} records (${seconds}s)`,
-        ),
+        pc.dim(`✔ 파일 ${syncReport.filesScanned.toLocaleString("en-US")}개 확인 · `) +
+          added +
+          pc.dim(` (${seconds}초)`),
       );
     }
   }
