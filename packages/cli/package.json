@@ -4,6 +4,23 @@
   "description": "Self-hosted AI usage tracker — aggregates Claude Code token usage and costs locally",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Guksu/tokkaebi.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/Guksu/tokkaebi#readme",
+  "keywords": [
+    "claude-code",
+    "token-usage",
+    "cost-tracking",
+    "cli",
+    "local-first",
+    "self-hosted"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "bin": {
     "tokkaebi": "./dist/index.js"
   },
