@@ -8,6 +8,7 @@ import {
   startOfLocalWeekWindow,
 } from "../dates.js";
 import { formatCost, formatTokens } from "../render/format.js";
+import { costBar, koreanWeekday } from "../render/korean.js";
 import { costCell, usageTable } from "../render/table.js";
 
 // week(최근 7일)·month(이번 달 1일부터)는 같은 일별 breakdown 뷰를 공유한다
@@ -41,8 +42,12 @@ export const runDaily = async ({
     return;
   }
 
-  const title = window === "week" ? "Last 7 days" : "This month";
-  console.log(`\n${pc.bold(title)}\n`);
+  const title = window === "week" ? "최근 7일" : "이번 달";
+  console.log(
+    `\n${pc.bold(title)} · ${pc.bold(
+      pc.green(formatCost({ usd: summary.totals.totalCost })),
+    )}\n`,
+  );
 
   if (days.length === 0) {
     console.log(pc.dim("이 기간에 기록된 사용량이 없습니다."));
@@ -50,20 +55,22 @@ export const runDaily = async ({
   }
 
   const table = usageTable({
-    head: ["Date", "Requests", "Input", "Output", "Cache Read", "Cost"],
+    head: ["날짜", "요청", "입력", "출력", "캐시 읽기", "비용", ""],
   });
+  const maxCost = Math.max(...days.map(({ cost }) => cost.totalCost));
   for (const day of days) {
     table.push([
-      day.date,
+      `${day.date.slice(5)} (${koreanWeekday({ date: day.date })})`,
       { content: formatTokens({ count: day.requestCount }), hAlign: "right" },
       { content: formatTokens({ count: day.tokens.inputTokens }), hAlign: "right" },
       { content: formatTokens({ count: day.tokens.outputTokens }), hAlign: "right" },
       { content: formatTokens({ count: day.tokens.cacheReadTokens }), hAlign: "right" },
       costCell({ cost: day.cost }),
+      costBar({ value: day.cost.totalCost, max: maxCost }),
     ]);
   }
   table.push([
-    pc.bold("Total"),
+    pc.bold("합계"),
     { content: formatTokens({ count: summary.totals.requestCount }), hAlign: "right" },
     {
       content: formatTokens({ count: summary.totals.tokens.inputTokens }),
@@ -77,12 +84,16 @@ export const runDaily = async ({
       content: formatTokens({ count: summary.totals.tokens.cacheReadTokens }),
       hAlign: "right",
     },
-    costCell({ cost: summary.totals.totalCost }),
+    {
+      content: pc.bold(pc.green(formatCost({ usd: summary.totals.totalCost }))),
+      hAlign: "right",
+    },
+    "",
   ]);
   console.log(table.toString());
 
   console.log(
-    `\n${pc.bold("Cache saved")}  ${pc.green(
+    `\n💰 ${pc.bold("캐시 절감")}  ${pc.green(
       formatCost({ usd: summary.totals.cacheSavings.net }),
     )}`,
   );

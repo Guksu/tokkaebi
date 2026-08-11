@@ -2,10 +2,11 @@ import { describe, expect, it } from "vitest";
 import { formatCost, formatTokens, shortenPath } from "../src/render/format.js";
 
 describe("formatCost", () => {
-  it("renders dollars with two decimals", () => {
+  it("renders dollars with two decimals and thousands separators", () => {
     expect(formatCost({ usd: 1.234 })).toBe("$1.23");
     expect(formatCost({ usd: 0 })).toBe("$0.00");
     expect(formatCost({ usd: 152.5 })).toBe("$152.50");
+    expect(formatCost({ usd: 2312.584 })).toBe("$2,312.58");
   });
 
   it("keeps tiny non-zero costs visible instead of rounding to $0.00", () => {
