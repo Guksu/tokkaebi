@@ -96,13 +96,30 @@ export const loadPricingTable = async ({
   ttlMs = DEFAULT_TTL_MS,
   fetchImpl = fetch,
   now = () => Date.now(),
+  offline = false,
 }: {
   cacheDir: string;
   ttlMs?: number;
   fetchImpl?: typeof fetch;
   now?: () => number;
+  /** true면 fetch를 절대 하지 않는다 — stale 디스크 → 번들 스냅샷 (status 등 지연 민감 경로용) */
+  offline?: boolean;
 }): Promise<LoadedPricing> => {
   const disk = await readDiskCache({ cacheDir });
+  if (offline) {
+    if (disk != null) {
+      return {
+        table: parseLitellmTable({ raw: disk.models }),
+        source: "disk",
+        fetchedAt: disk.fetchedAt,
+      };
+    }
+    return {
+      table: parseLitellmTable({ raw: snapshot as Record<string, unknown> }),
+      source: "snapshot",
+      fetchedAt: null,
+    };
+  }
   if (disk != null && now() - disk.fetchedAt < ttlMs) {
     return {
       table: parseLitellmTable({ raw: disk.models }),

@@ -46,6 +46,22 @@ export const heatLevel = ({ value, max }: { value: number; max: number }) => {
   return 4;
 };
 
+// 월 예산 게이지 — 초과분은 넘치지 않게 클램프하고 색으로 경고한다
+export const budgetGauge = ({
+  spent,
+  budget,
+  width = 10,
+}: {
+  spent: number;
+  budget: number;
+  width?: number;
+}) => {
+  const ratio = budget > 0 ? spent / budget : 0;
+  const filled = Math.min(width, Math.max(spent > 0 ? 1 : 0, Math.round(ratio * width)));
+  const color = ratio >= 1 ? pc.red : ratio >= 0.8 ? pc.yellow : pc.green;
+  return `[${color("▮".repeat(filled))}${pc.dim("▯".repeat(width - filled))}]`;
+};
+
 // 기간 대비 비율 막대 — 표 안에서 하루/항목의 비중을 한눈에 보여준다
 export const costBar = ({
   value,

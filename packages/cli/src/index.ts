@@ -1,13 +1,6 @@
 import { Command, type Help } from "commander";
 import pc from "picocolors";
 import packageJson from "../package.json" with { type: "json" };
-import { runAgents } from "./commands/agents.js";
-import { runDaily } from "./commands/daily.js";
-import { runHeatmap } from "./commands/heatmap.js";
-import { runTrend } from "./commands/trend.js";
-import { runSessions } from "./commands/sessions.js";
-import { runSync } from "./commands/sync.js";
-import { runToday } from "./commands/today.js";
 
 const program = new Command();
 
@@ -64,24 +57,24 @@ program
   .description("세션 로그를 스캔해 로컬 DB 갱신 (새 데이터만 증분 수집)")
   .configureHelp({ formatHelp })
   .option("--json", "동기화 리포트를 JSON으로 출력", false)
-  .action(({ json }: { json: boolean }) => runSync({ json }));
+  .action(({ json }: { json: boolean }) => import("./commands/sync.js").then(({ runSync }) => runSync({ json })));
 
 withCommonOptions(
   program
     .command("today")
     .description("오늘 사용량 — 모델별 · 프로젝트/브랜치별 비용, 캐시 절감, 연속 사용일"),
-).action(({ json, sync }: { json: boolean; sync: boolean }) => runToday({ json, sync }));
+).action(({ json, sync }: { json: boolean; sync: boolean }) => import("./commands/today.js").then(({ runToday }) => runToday({ json, sync })));
 
 withCommonOptions(
   program.command("week").description("최근 7일 — 일별 추이 + 프로젝트별 합계"),
 ).action(({ json, sync }: { json: boolean; sync: boolean }) =>
-  runDaily({ window: "week", json, sync }),
+  import("./commands/daily.js").then(({ runDaily }) => runDaily({ window: "week", json, sync })),
 );
 
 withCommonOptions(
   program.command("month").description("이번 달 — 일별 추이 + 프로젝트별 합계"),
 ).action(({ json, sync }: { json: boolean; sync: boolean }) =>
-  runDaily({ window: "month", json, sync }),
+  import("./commands/daily.js").then(({ runDaily }) => runDaily({ window: "month", json, sync })),
 );
 
 withCommonOptions(
@@ -90,12 +83,40 @@ withCommonOptions(
     .description("비용 상위 세션 랭킹 (프로젝트 · 브랜치 · 비용)")
     .option("--top <n>", "표시할 세션 수", "10"),
 ).action(({ top, json, sync }: { top: string; json: boolean; sync: boolean }) =>
-  runSessions({ top: Number.parseInt(top, 10) || 10, json, sync }),
+  import("./commands/sessions.js").then(({ runSessions }) => runSessions({ top: Number.parseInt(top, 10) || 10, json, sync })),
 );
+
+const budget = program
+  .command("budget")
+  .description("월 예산 관리 — 게이지와 월말 페이스 예측")
+  .configureHelp({ formatHelp });
+withCommonOptions(budget).action(({ json, sync }: { json: boolean; sync: boolean }) =>
+  import("./commands/budget.js").then(({ runBudgetShow }) => runBudgetShow({ json, sync })),
+);
+budget
+  .command("set <금액>")
+  .description("월 예산 설정 (USD, 예: 200)")
+  .configureHelp({ formatHelp })
+  .action((amount: string) => import("./commands/budget.js").then(({ runBudgetSet }) => runBudgetSet({ amount })));
+budget
+  .command("clear")
+  .description("월 예산 해제")
+  .configureHelp({ formatHelp })
+  .action(() => import("./commands/budget.js").then(({ runBudgetClear }) => runBudgetClear()));
+
+program
+  .command("status")
+  .description("셸 프롬프트·tmux용 한 줄 요약 (동기화 없음, 빠름)")
+  .configureHelp({ formatHelp })
+  .option("--plain", "색·이모지 없이 출력", false)
+  .option("--json", "JSON으로 출력", false)
+  .action(({ plain, json }: { plain: boolean; json: boolean }) =>
+    import("./commands/status.js").then(({ runStatus }) => runStatus({ plain, json })),
+  );
 
 withCommonOptions(
   program.command("agents").description("서브에이전트별 사용량 · 비용 (전체 기간)"),
-).action(({ json, sync }: { json: boolean; sync: boolean }) => runAgents({ json, sync }));
+).action(({ json, sync }: { json: boolean; sync: boolean }) => import("./commands/agents.js").then(({ runAgents }) => runAgents({ json, sync })));
 
 withCommonOptions(
   program
@@ -103,7 +124,9 @@ withCommonOptions(
     .description("요일 × 시간대 사용 히트맵 — 언제 많이 쓰는지 한눈에")
     .option("--weeks <n>", "집계 기간(주)", "8"),
 ).action(({ weeks, json, sync }: { weeks: string; json: boolean; sync: boolean }) =>
-  runHeatmap({ weeks: Number.parseInt(weeks, 10) || 8, json, sync }),
+  import("./commands/heatmap.js").then(({ runHeatmap }) =>
+    runHeatmap({ weeks: Number.parseInt(weeks, 10) || 8, json, sync }),
+  ),
 );
 
 withCommonOptions(
@@ -123,7 +146,10 @@ withCommonOptions(
     daily: boolean;
     json: boolean;
     sync: boolean;
-  }) => runTrend({ weeks: Number.parseInt(weeks, 10) || 12, daily, json, sync }),
+  }) =>
+    import("./commands/trend.js").then(({ runTrend }) =>
+      runTrend({ weeks: Number.parseInt(weeks, 10) || 12, daily, json, sync }),
+    ),
 );
 
 await program.parseAsync();
