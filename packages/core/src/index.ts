@@ -2,6 +2,21 @@ export { classifyLine, type LineResult } from "./parser/classify.js";
 export { parseJsonlFrom } from "./parser/stream.js";
 export { scanJsonlFiles } from "./parser/scan.js";
 export { assistantRecordSchema, type AssistantRecord } from "./parser/schema.js";
+export {
+  getAgentTotals,
+  getBranchTotals,
+  getDailyTotals,
+  getPeriodSummary,
+  getTopSessions,
+  getUsageDayIndexes,
+  type DailySummary,
+  type GroupSummary,
+  type ModelSummary,
+  type PeriodSummary,
+  type PeriodTotals,
+  type SessionSummary,
+} from "./aggregate/queries.js";
+export { computeStreak, dayIndexToDate, toDayIndex } from "./aggregate/streak.js";
 export { openDatabase } from "./db/database.js";
 export { syncUsage, type SyncReport } from "./db/sync.js";
 export { getClaudeProjectsDir, getDbPath, getTokkaebiHome } from "./paths.js";
