@@ -28,6 +28,24 @@ export const PRICING_SOURCE_KO: Record<string, string> = {
   snapshot: "번들 스냅샷 (오프라인)",
 };
 
+// 요일 인덱스(0=일 … 6=토) → 한 글자 라벨. 일요일 빨강·토요일 파랑
+export const weekdayLabel = ({ weekday }: { weekday: number }) => {
+  const label = WEEKDAYS_KO[weekday] ?? "?";
+  if (weekday === 0) return pc.red(label);
+  if (weekday === 6) return pc.blue(label);
+  return label;
+};
+
+// 히트맵 강도 5단계 (0=없음, 1~4=사분위)
+export const heatLevel = ({ value, max }: { value: number; max: number }) => {
+  if (value <= 0 || max <= 0) return 0;
+  const ratio = value / max;
+  if (ratio <= 0.25) return 1;
+  if (ratio <= 0.5) return 2;
+  if (ratio <= 0.75) return 3;
+  return 4;
+};
+
 // 기간 대비 비율 막대 — 표 안에서 하루/항목의 비중을 한눈에 보여준다
 export const costBar = ({
   value,

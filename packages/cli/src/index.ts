@@ -3,6 +3,8 @@ import pc from "picocolors";
 import packageJson from "../package.json" with { type: "json" };
 import { runAgents } from "./commands/agents.js";
 import { runDaily } from "./commands/daily.js";
+import { runHeatmap } from "./commands/heatmap.js";
+import { runTrend } from "./commands/trend.js";
 import { runSessions } from "./commands/sessions.js";
 import { runSync } from "./commands/sync.js";
 import { runToday } from "./commands/today.js";
@@ -94,5 +96,34 @@ withCommonOptions(
 withCommonOptions(
   program.command("agents").description("서브에이전트별 사용량 · 비용 (전체 기간)"),
 ).action(({ json, sync }: { json: boolean; sync: boolean }) => runAgents({ json, sync }));
+
+withCommonOptions(
+  program
+    .command("heatmap")
+    .description("요일 × 시간대 사용 히트맵 — 언제 많이 쓰는지 한눈에")
+    .option("--weeks <n>", "집계 기간(주)", "8"),
+).action(({ weeks, json, sync }: { weeks: string; json: boolean; sync: boolean }) =>
+  runHeatmap({ weeks: Number.parseInt(weeks, 10) || 8, json, sync }),
+);
+
+withCommonOptions(
+  program
+    .command("trend")
+    .description("주간 비용 추이 — 스파크라인 + 전주 대비 증감")
+    .option("--weeks <n>", "집계 기간(주)", "12")
+    .option("--daily", "최근 30일 일별 추이로 보기", false),
+).action(
+  ({
+    weeks,
+    daily,
+    json,
+    sync,
+  }: {
+    weeks: string;
+    daily: boolean;
+    json: boolean;
+    sync: boolean;
+  }) => runTrend({ weeks: Number.parseInt(weeks, 10) || 12, daily, json, sync }),
+);
 
 await program.parseAsync();

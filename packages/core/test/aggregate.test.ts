@@ -3,11 +3,13 @@ import {
   getAgentTotals,
   getBranchTotals,
   getDailyTotals,
+  getHeatmapTotals,
   getPeriodSummary,
   getProjectBranchTotals,
   getProjectTotals,
   getTopSessions,
   getUsageDayIndexes,
+  getWeeklyTotals,
 } from "../src/aggregate/queries.js";
 import { computeStreak, toDayIndex } from "../src/aggregate/streak.js";
 import { openDatabase } from "../src/db/database.js";
@@ -342,6 +344,104 @@ describe("getTopSessions", () => {
     });
     expect(sessions[0]?.totalCost).toBeCloseTo(50, 6);
     expect(sessions[1]?.sessionId).toBe("session-b");
+  });
+});
+
+describe("getHeatmapTotals", () => {
+  const kst = 9 * 60 * 60 * 1000;
+
+  it("buckets by local weekday and hour across the day boundary", () => {
+    // UTC 2026-08-10(월) 23:30 = KST 2026-08-11(화) 08:30
+    const db = seedDb([
+      {
+        dedupeKey: "h1",
+        tsEpoch: Date.parse("2026-08-10T23:30:00.000Z"),
+        inputTokens: 100,
+      },
+    ]);
+
+    const cells = getHeatmapTotals({
+      db,
+      table,
+      sinceEpoch: 0,
+      untilEpoch: Number.MAX_SAFE_INTEGER,
+      tzOffsetMs: kst,
+    });
+
+    expect(cells).toHaveLength(1);
+    expect(cells[0]).toMatchObject({ weekday: 2, hour: 8 });
+    expect(cells[0]?.tokens.inputTokens).toBe(100);
+  });
+
+  it("merges the same weekday/hour across different weeks and prices models", () => {
+    const db = seedDb([
+      // 두 주 연속 화요일 10시(UTC 기준, tz 0)
+      { dedupeKey: "h2", tsEpoch: Date.parse("2026-08-04T10:15:00.000Z"), outputTokens: 100 },
+      { dedupeKey: "h3", tsEpoch: Date.parse("2026-08-11T10:45:00.000Z"), outputTokens: 300 },
+      // 다른 시각 하나
+      { dedupeKey: "h4", tsEpoch: Date.parse("2026-08-11T11:00:00.000Z"), outputTokens: 1 },
+    ]);
+
+    const cells = getHeatmapTotals({
+      db,
+      table,
+      sinceEpoch: 0,
+      untilEpoch: Number.MAX_SAFE_INTEGER,
+      tzOffsetMs: 0,
+    });
+
+    expect(cells).toHaveLength(2);
+    const tuesday10 = cells.find(({ weekday, hour }) => weekday === 2 && hour === 10);
+    expect(tuesday10?.tokens.outputTokens).toBe(400);
+    expect(tuesday10?.requestCount).toBe(2);
+    // fable output 단가 5e-5 × 400 = $0.02
+    expect(tuesday10?.cost.totalCost).toBeCloseTo(0.02, 10);
+  });
+});
+
+describe("getWeeklyTotals", () => {
+  it("splits local Sunday night and Monday morning into different weeks", () => {
+    const db = seedDb([
+      { dedupeKey: "w1", tsEpoch: Date.parse("2026-08-09T23:59:00.000Z"), inputTokens: 10 },
+      { dedupeKey: "w2", tsEpoch: Date.parse("2026-08-10T00:01:00.000Z"), inputTokens: 20 },
+      { dedupeKey: "w3", tsEpoch: Date.parse("2026-08-12T09:00:00.000Z"), inputTokens: 30 },
+    ]);
+
+    const weeks = getWeeklyTotals({
+      db,
+      table,
+      sinceEpoch: 0,
+      untilEpoch: Number.MAX_SAFE_INTEGER,
+      tzOffsetMs: 0,
+    });
+
+    expect(weeks).toHaveLength(2);
+    expect(weeks[0]?.weekStart).toBe("2026-08-03");
+    expect(weeks[0]?.tokens.inputTokens).toBe(10);
+    expect(weeks[1]?.weekStart).toBe("2026-08-10");
+    expect(weeks[1]?.tokens.inputTokens).toBe(50);
+    expect(weeks[1]?.requestCount).toBe(2);
+  });
+
+  it("carries cache savings so trend views can chart them", () => {
+    const db = seedDb([
+      {
+        dedupeKey: "w4",
+        tsEpoch: Date.parse("2026-08-11T10:00:00.000Z"),
+        cacheReadTokens: 1_000_000,
+      },
+    ]);
+
+    const weeks = getWeeklyTotals({
+      db,
+      table,
+      sinceEpoch: 0,
+      untilEpoch: Number.MAX_SAFE_INTEGER,
+      tzOffsetMs: 0,
+    });
+
+    // read 1M × (input 1e-5 − read 1e-6) = $9.0
+    expect(weeks[0]?.cost.cacheSavings.net).toBeCloseTo(9.0, 10);
   });
 });
 
