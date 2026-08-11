@@ -143,6 +143,40 @@ describe("loadPricingTable", () => {
     );
   });
 
+  it("offline mode never fetches and accepts a stale disk cache", async () => {
+    const cacheDir = await tempCacheDir();
+    const now = Date.parse("2026-08-11T12:00:00.000Z");
+    await writeFile(
+      join(cacheDir, "pricing-cache.json"),
+      JSON.stringify({ fetchedAt: now - DAY_MS * 90, models: { "claude-disk": litellmEntry } }),
+    );
+    // 성공하는 fetch를 주입 — 호출됐다면 source가 "fetch"가 됐을 것이므로
+    // "disk"라는 결과 + calls 0건이 "fetch 자체를 안 했다"를 증명한다
+    const { fetchImpl, calls } = fetchReturning({ "claude-live": litellmEntry });
+
+    const result = await loadPricingTable({
+      cacheDir,
+      fetchImpl,
+      now: () => now,
+      offline: true,
+    });
+
+    expect(result.source).toBe("disk");
+    expect(result.table["claude-disk"]).toBeDefined();
+    expect(calls).toHaveLength(0);
+  });
+
+  it("offline mode falls back to the snapshot without a disk cache", async () => {
+    const result = await loadPricingTable({
+      cacheDir: await tempCacheDir(),
+      fetchImpl: failingFetch,
+      offline: true,
+    });
+
+    expect(result.source).toBe("snapshot");
+    expect(result.table["claude-fable-5"]).toBeDefined();
+  });
+
   it("writes the disk cache after a successful fetch with no prior cache", async () => {
     const cacheDir = await tempCacheDir();
     const { fetchImpl } = fetchReturning({ "claude-live": litellmEntry });

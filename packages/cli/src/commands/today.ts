@@ -3,14 +3,22 @@ import {
   getPeriodSummary,
   getProjectBranchTotals,
   getUsageDayIndexes,
+  projectMonthlySpend,
+  readConfig,
   toDayIndex,
 } from "@tokkaebi/core";
 import pc from "picocolors";
 import { createContext, warnUnknownModels } from "../context.js";
-import { endOfLocalDay, localTzOffsetMs, startOfLocalDay } from "../dates.js";
+import {
+  endOfLocalDay,
+  localTzOffsetMs,
+  startOfLocalDay,
+  startOfLocalMonth,
+} from "../dates.js";
 import { formatCost, shortenPath } from "../render/format.js";
-import { costBar, koreanWeekday } from "../render/korean.js";
+import { budgetGauge, costBar, koreanWeekday } from "../render/korean.js";
 import { costCell, tokenCells, usageTable } from "../render/table.js";
+import { paceLine } from "./budget.js";
 
 export const runToday = async ({ json, sync }: { json: boolean; sync: boolean }) => {
   const now = new Date();
@@ -32,10 +40,36 @@ export const runToday = async ({ json, sync }: { json: boolean; sync: boolean })
     todayIndex: toDayIndex({ epochMs: now.getTime(), tzOffsetMs }),
   });
 
+  const config = await readConfig({});
+  const budgetUsd = config.budget?.monthlyUsd ?? null;
+  const monthSpentUsd =
+    budgetUsd == null
+      ? null
+      : getPeriodSummary({
+          db,
+          table: pricing.table,
+          sinceEpoch: startOfLocalMonth({ now }),
+          untilEpoch,
+        }).totals.totalCost;
+
   if (json) {
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const budget =
+      budgetUsd == null || monthSpentUsd == null
+        ? null
+        : {
+            monthlyUsd: budgetUsd,
+            spentUsd: monthSpentUsd,
+            ratio: monthSpentUsd / budgetUsd,
+            ...projectMonthlySpend({
+              spentUsd: monthSpentUsd,
+              dayOfMonth: now.getDate(),
+              daysInMonth,
+            }),
+          };
     console.log(
       JSON.stringify(
-        { date: now.toISOString(), summary, projectBranches, streak },
+        { date: now.toISOString(), summary, projectBranches, streak, budget },
         null,
         2,
       ),
@@ -104,5 +138,17 @@ export const runToday = async ({ json, sync }: { json: boolean; sync: boolean })
     )}`,
   );
   console.log(`🧌 ${pc.bold("연속 사용")}  ${pc.bold(String(streak))}일째`);
+  if (budgetUsd != null && monthSpentUsd != null) {
+    const percent = Math.round((monthSpentUsd / budgetUsd) * 100);
+    console.log(
+      `📊 ${pc.bold("월 예산")}   ${budgetGauge({ spent: monthSpentUsd, budget: budgetUsd })} ${percent}% · ${formatCost(
+        { usd: monthSpentUsd },
+      )}/${formatCost({ usd: budgetUsd })} · ${paceLine({
+        spentUsd: monthSpentUsd,
+        budgetUsd,
+        now,
+      })}`,
+    );
+  }
   warnUnknownModels({ unknownModels: summary.unknownModels });
 };

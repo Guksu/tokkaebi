@@ -19,6 +19,13 @@ export {
   type SessionSummary,
 } from "./aggregate/queries.js";
 export { computeStreak, dayIndexToDate, toDayIndex } from "./aggregate/streak.js";
+export { projectMonthlySpend } from "./aggregate/pace.js";
+export {
+  getConfigPath,
+  readConfig,
+  writeConfig,
+  type TokkaebiConfig,
+} from "./config.js";
 export { openDatabase } from "./db/database.js";
 export { syncUsage, type SyncReport } from "./db/sync.js";
 export { getClaudeProjectsDir, getDbPath, getTokkaebiHome } from "./paths.js";

@@ -1,5 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { formatCost, formatTokens, shortenPath } from "../src/render/format.js";
+import { budgetGauge } from "../src/render/korean.js";
+
+const stripAnsi = (text: string) => text.replace(/\[[0-9;]*m/g, "");
+
+describe("budgetGauge", () => {
+  it("fills proportionally to spend", () => {
+    expect(stripAnsi(budgetGauge({ spent: 0, budget: 200 }))).toBe("[▯▯▯▯▯▯▯▯▯▯]");
+    expect(stripAnsi(budgetGauge({ spent: 94, budget: 200 }))).toBe("[▮▮▮▮▮▯▯▯▯▯]");
+    expect(stripAnsi(budgetGauge({ spent: 200, budget: 200 }))).toBe("[▮▮▮▮▮▮▮▮▮▮]");
+  });
+
+  it("clamps overspend at a full bar instead of overflowing", () => {
+    expect(stripAnsi(budgetGauge({ spent: 260, budget: 200 }))).toBe("[▮▮▮▮▮▮▮▮▮▮]");
+  });
+});
 
 describe("formatCost", () => {
   it("renders dollars with two decimals and thousands separators", () => {
