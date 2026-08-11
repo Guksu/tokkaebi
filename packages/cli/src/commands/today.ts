@@ -1,26 +1,18 @@
 import {
   computeStreak,
-  getBranchTotals,
   getPeriodSummary,
+  getProjectBranchTotals,
   getUsageDayIndexes,
   toDayIndex,
 } from "@tokkaebi/core";
 import pc from "picocolors";
 import { createContext, warnUnknownModels } from "../context.js";
 import { endOfLocalDay, localTzOffsetMs, startOfLocalDay } from "../dates.js";
-import { formatCost } from "../render/format.js";
+import { formatCost, shortenPath } from "../render/format.js";
 import { costBar, koreanWeekday } from "../render/korean.js";
 import { costCell, tokenCells, usageTable } from "../render/table.js";
 
-export const runToday = async ({
-  by,
-  json,
-  sync,
-}: {
-  by: "model" | "branch";
-  json: boolean;
-  sync: boolean;
-}) => {
+export const runToday = async ({ json, sync }: { json: boolean; sync: boolean }) => {
   const now = new Date();
   const sinceEpoch = startOfLocalDay({ now });
   const untilEpoch = endOfLocalDay({ now });
@@ -28,6 +20,12 @@ export const runToday = async ({
 
   const { db, pricing } = await createContext({ sync, quiet: json });
   const summary = getPeriodSummary({ db, table: pricing.table, sinceEpoch, untilEpoch });
+  const projectBranches = getProjectBranchTotals({
+    db,
+    table: pricing.table,
+    sinceEpoch,
+    untilEpoch,
+  });
   const dayIndexes = getUsageDayIndexes({ db, tzOffsetMs });
   const streak = computeStreak({
     dayIndexes,
@@ -35,7 +33,13 @@ export const runToday = async ({
   });
 
   if (json) {
-    console.log(JSON.stringify({ date: now.toISOString(), summary, streak }, null, 2));
+    console.log(
+      JSON.stringify(
+        { date: now.toISOString(), summary, projectBranches, streak },
+        null,
+        2,
+      ),
+    );
     return;
   }
 
@@ -51,42 +55,45 @@ export const runToday = async ({
     return;
   }
 
-  const groupHead = by === "branch" ? "브랜치" : "모델";
-  const table = usageTable({
-    head: [groupHead, "입력", "출력", "캐시 읽기", "캐시 쓰기", "비용", ""],
+  console.log(pc.bold("모델별"));
+  const modelTable = usageTable({
+    head: ["모델", "입력", "출력", "캐시 읽기", "캐시 쓰기", "비용", ""],
   });
-
-  const rows =
-    by === "branch"
-      ? getBranchTotals({ db, table: pricing.table, sinceEpoch, untilEpoch }).map(
-          (row) => ({
-            label: row.branch ?? pc.dim("(브랜치 없음)"),
-            tokens: row.tokens,
-            cost: row.cost,
-          }),
-        )
-      : summary.models.map((row) => ({
-          label: row.unknown ? `${row.model} ${pc.yellow("?")}` : pc.cyan(row.model),
-          tokens: row.tokens,
-          cost: row.cost,
-        }));
-
-  const maxCost = Math.max(...rows.map(({ cost }) => cost.totalCost));
-  for (const row of rows) {
-    table.push([
-      row.label,
+  const maxModelCost = Math.max(...summary.models.map(({ cost }) => cost.totalCost));
+  for (const row of summary.models) {
+    modelTable.push([
+      row.unknown ? `${row.model} ${pc.yellow("?")}` : pc.cyan(row.model),
       ...tokenCells({ tokens: row.tokens }),
       costCell({ cost: row.cost }),
-      costBar({ value: row.cost.totalCost, max: maxCost, width: 8 }),
+      costBar({ value: row.cost.totalCost, max: maxModelCost, width: 8 }),
     ]);
   }
-  table.push([
+  modelTable.push([
     pc.bold("합계"),
     ...tokenCells({ tokens: summary.totals.tokens }),
-    { content: pc.bold(pc.green(formatCost({ usd: summary.totals.totalCost }))), hAlign: "right" },
+    {
+      content: pc.bold(pc.green(formatCost({ usd: summary.totals.totalCost }))),
+      hAlign: "right",
+    },
     "",
   ]);
-  console.log(table.toString());
+  console.log(modelTable.toString());
+
+  console.log(`\n${pc.bold("프로젝트 · 브랜치별")}`);
+  const projectTable = usageTable({
+    head: ["프로젝트", "브랜치", "입력", "출력", "캐시 읽기", "캐시 쓰기", "비용", ""],
+  });
+  const maxProjectCost = Math.max(...projectBranches.map(({ cost }) => cost.totalCost));
+  for (const row of projectBranches) {
+    projectTable.push([
+      pc.cyan(shortenPath({ cwd: row.cwd })),
+      row.branch ?? pc.dim("-"),
+      ...tokenCells({ tokens: row.tokens }),
+      costCell({ cost: row.cost }),
+      costBar({ value: row.cost.totalCost, max: maxProjectCost, width: 8 }),
+    ]);
+  }
+  console.log(projectTable.toString());
 
   const { net, gross } = summary.totals.cacheSavings;
   console.log(

@@ -1,4 +1,4 @@
-import { getDailyTotals, getPeriodSummary } from "@tokkaebi/core";
+import { getDailyTotals, getPeriodSummary, getProjectTotals } from "@tokkaebi/core";
 import pc from "picocolors";
 import { createContext, warnUnknownModels } from "../context.js";
 import {
@@ -7,7 +7,7 @@ import {
   startOfLocalMonth,
   startOfLocalWeekWindow,
 } from "../dates.js";
-import { formatCost, formatTokens } from "../render/format.js";
+import { formatCost, formatTokens, shortenPath } from "../render/format.js";
 import { costBar, koreanWeekday } from "../render/korean.js";
 import { costCell, usageTable } from "../render/table.js";
 
@@ -36,9 +36,10 @@ export const runDaily = async ({
     tzOffsetMs,
   });
   const summary = getPeriodSummary({ db, table: pricing.table, sinceEpoch, untilEpoch });
+  const projects = getProjectTotals({ db, table: pricing.table, sinceEpoch, untilEpoch });
 
   if (json) {
-    console.log(JSON.stringify({ window, days, totals: summary }, null, 2));
+    console.log(JSON.stringify({ window, days, projects, totals: summary }, null, 2));
     return;
   }
 
@@ -91,6 +92,27 @@ export const runDaily = async ({
     "",
   ]);
   console.log(table.toString());
+
+  console.log(`\n${pc.bold("프로젝트별")}`);
+  const projectTable = usageTable({
+    head: ["프로젝트", "요청", "입력", "출력", "캐시 읽기", "비용", ""],
+  });
+  const maxProjectCost = Math.max(...projects.map(({ cost }) => cost.totalCost));
+  for (const project of projects) {
+    projectTable.push([
+      pc.cyan(shortenPath({ cwd: project.cwd })),
+      { content: formatTokens({ count: project.requestCount }), hAlign: "right" },
+      { content: formatTokens({ count: project.tokens.inputTokens }), hAlign: "right" },
+      { content: formatTokens({ count: project.tokens.outputTokens }), hAlign: "right" },
+      {
+        content: formatTokens({ count: project.tokens.cacheReadTokens }),
+        hAlign: "right",
+      },
+      costCell({ cost: project.cost }),
+      costBar({ value: project.cost.totalCost, max: maxProjectCost }),
+    ]);
+  }
+  console.log(projectTable.toString());
 
   console.log(
     `\n💰 ${pc.bold("캐시 절감")}  ${pc.green(

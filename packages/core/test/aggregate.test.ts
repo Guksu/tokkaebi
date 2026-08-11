@@ -4,6 +4,8 @@ import {
   getBranchTotals,
   getDailyTotals,
   getPeriodSummary,
+  getProjectBranchTotals,
+  getProjectTotals,
   getTopSessions,
   getUsageDayIndexes,
 } from "../src/aggregate/queries.js";
@@ -256,6 +258,49 @@ describe("getBranchTotals / getAgentTotals", () => {
     expect(agents).toHaveLength(1);
     expect(agents[0]).toMatchObject({ agent: "Explore", requestCount: 2 });
     expect(agents[0]?.tokens.inputTokens).toBe(70);
+  });
+});
+
+describe("getProjectTotals / getProjectBranchTotals", () => {
+  const seeds: Seed[] = [
+    { dedupeKey: "p1", tsEpoch: T0, cwd: "/home/user/alpha", gitBranch: "main", inputTokens: 10 },
+    { dedupeKey: "p2", tsEpoch: T0, cwd: "/home/user/alpha", gitBranch: "feat/x", inputTokens: 20 },
+    { dedupeKey: "p3", tsEpoch: T0, cwd: "/home/user/beta", gitBranch: "main", outputTokens: 1_000_000 },
+  ];
+
+  it("groups by project cwd", () => {
+    const db = seedDb(seeds);
+
+    const projects = getProjectTotals({
+      db,
+      table,
+      sinceEpoch: T0,
+      untilEpoch: T0 + DAY_MS,
+    });
+
+    expect(projects).toHaveLength(2);
+    // 비용 내림차순 — beta(출력 100만 = $50)가 먼저
+    expect(projects[0]?.cwd).toBe("/home/user/beta");
+    expect(projects[1]?.cwd).toBe("/home/user/alpha");
+    expect(projects[1]?.tokens.inputTokens).toBe(30);
+    expect(projects[1]?.requestCount).toBe(2);
+  });
+
+  it("groups by project and branch together", () => {
+    const db = seedDb(seeds);
+
+    const rows = getProjectBranchTotals({
+      db,
+      table,
+      sinceEpoch: T0,
+      untilEpoch: T0 + DAY_MS,
+    });
+
+    expect(rows).toHaveLength(3);
+    const alphaFeat = rows.find(
+      ({ cwd, branch }) => cwd === "/home/user/alpha" && branch === "feat/x",
+    );
+    expect(alphaFeat?.tokens.inputTokens).toBe(20);
   });
 });
 

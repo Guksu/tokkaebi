@@ -7,6 +7,8 @@ export {
   getBranchTotals,
   getDailyTotals,
   getPeriodSummary,
+  getProjectBranchTotals,
+  getProjectTotals,
   getTopSessions,
   getUsageDayIndexes,
   type DailySummary,
