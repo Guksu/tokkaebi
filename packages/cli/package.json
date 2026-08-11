@@ -1,0 +1,25 @@
+{
+  "name": "tokkaebi",
+  "version": "0.1.0",
+  "description": "Self-hosted AI usage tracker — aggregates Claude Code token usage and costs locally",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "tokkaebi": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx src/index.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tokkaebi/core": "workspace:*",
+    "cli-table3": "^0.6.5",
+    "commander": "^15.0.0",
+    "picocolors": "^1.1.1"
+  }
+}
