@@ -118,4 +118,38 @@ withCommonOptions(
   program.command("agents").description("서브에이전트별 사용량 · 비용 (전체 기간)"),
 ).action(({ json, sync }: { json: boolean; sync: boolean }) => import("./commands/agents.js").then(({ runAgents }) => runAgents({ json, sync })));
 
+withCommonOptions(
+  program
+    .command("heatmap")
+    .description("요일 × 시간대 사용 히트맵 — 언제 많이 쓰는지 한눈에")
+    .option("--weeks <n>", "집계 기간(주)", "8"),
+).action(({ weeks, json, sync }: { weeks: string; json: boolean; sync: boolean }) =>
+  import("./commands/heatmap.js").then(({ runHeatmap }) =>
+    runHeatmap({ weeks: Number.parseInt(weeks, 10) || 8, json, sync }),
+  ),
+);
+
+withCommonOptions(
+  program
+    .command("trend")
+    .description("주간 비용 추이 — 스파크라인 + 전주 대비 증감")
+    .option("--weeks <n>", "집계 기간(주)", "12")
+    .option("--daily", "최근 30일 일별 추이로 보기", false),
+).action(
+  ({
+    weeks,
+    daily,
+    json,
+    sync,
+  }: {
+    weeks: string;
+    daily: boolean;
+    json: boolean;
+    sync: boolean;
+  }) =>
+    import("./commands/trend.js").then(({ runTrend }) =>
+      runTrend({ weeks: Number.parseInt(weeks, 10) || 12, daily, json, sync }),
+    ),
+);
+
 await program.parseAsync();

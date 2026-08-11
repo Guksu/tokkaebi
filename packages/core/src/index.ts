@@ -6,13 +6,17 @@ export {
   getAgentTotals,
   getBranchTotals,
   getDailyTotals,
+  getHeatmapTotals,
   getPeriodSummary,
   getProjectBranchTotals,
   getProjectTotals,
   getTopSessions,
   getUsageDayIndexes,
+  getWeeklyTotals,
   type DailySummary,
   type GroupSummary,
+  type HeatmapCell,
+  type WeeklySummary,
   type ModelSummary,
   type PeriodSummary,
   type PeriodTotals,
@@ -20,6 +24,11 @@ export {
 } from "./aggregate/queries.js";
 export { computeStreak, dayIndexToDate, toDayIndex } from "./aggregate/streak.js";
 export { projectMonthlySpend } from "./aggregate/pace.js";
+export {
+  dayIndexToWeekday,
+  toWeekIndex,
+  weekIndexToStartDate,
+} from "./aggregate/time.js";
 export {
   getConfigPath,
   readConfig,
