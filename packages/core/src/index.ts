@@ -10,6 +10,7 @@ export {
   getPeriodSummary,
   getProjectBranchTotals,
   getProjectTotals,
+  getSkillTotals,
   getTopSessions,
   getUsageDayIndexes,
   getWeeklyTotals,
