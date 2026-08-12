@@ -86,6 +86,18 @@ withCommonOptions(
   import("./commands/sessions.js").then(({ runSessions }) => runSessions({ top: Number.parseInt(top, 10) || 10, json, sync })),
 );
 
+withCommonOptions(
+  program.command("cache").description("캐시 심층 분석 — 히트율·쓰기 비중·절감 추이 (최근 12주)"),
+).action(({ json, sync }: { json: boolean; sync: boolean }) =>
+  import("./commands/cache.js").then(({ runCache }) => runCache({ json, sync })),
+);
+
+withCommonOptions(
+  program.command("skills").description("스킬별 사용량 · 비용 (전체 기간)"),
+).action(({ json, sync }: { json: boolean; sync: boolean }) =>
+  import("./commands/skills.js").then(({ runSkills }) => runSkills({ json, sync })),
+);
+
 const budget = program
   .command("budget")
   .description("월 예산 관리 — 게이지와 월말 페이스 예측")

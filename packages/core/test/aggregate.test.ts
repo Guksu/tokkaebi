@@ -7,6 +7,7 @@ import {
   getPeriodSummary,
   getProjectBranchTotals,
   getProjectTotals,
+  getSkillTotals,
   getTopSessions,
   getUsageDayIndexes,
   getWeeklyTotals,
@@ -45,6 +46,7 @@ type Seed = {
   isSidechain?: boolean;
   agentId?: string | null;
   attributionAgent?: string | null;
+  attributionSkill?: string | null;
   inputTokens?: number;
   outputTokens?: number;
   cacheReadTokens?: number;
@@ -66,7 +68,7 @@ const seedDb = (seeds: Seed[]) => {
     ) VALUES (
       @dedupeKey, 1, @sessionId, @tsEpoch, @timestamp, @model,
       @inputTokens, @outputTokens, @cacheReadTokens, @cache5mTokens, @cache1hTokens,
-      @cwd, @gitBranch, @isSidechain, @agentId, @attributionAgent, NULL, NULL, '2.1.227'
+      @cwd, @gitBranch, @isSidechain, @agentId, @attributionAgent, @attributionSkill, NULL, '2.1.227'
     )
   `);
   for (const seed of seeds) {
@@ -77,6 +79,7 @@ const seedDb = (seeds: Seed[]) => {
       gitBranch: "main",
       agentId: null,
       attributionAgent: null,
+      attributionSkill: null,
       inputTokens: 0,
       outputTokens: 0,
       cacheReadTokens: 0,
@@ -227,6 +230,28 @@ describe("getBranchTotals / getAgentTotals", () => {
     const featX = branches.find(({ branch }) => branch === "feat/x");
     expect(featX?.tokens.inputTokens).toBe(50);
     expect(branches.find(({ branch }) => branch === null)?.tokens.inputTokens).toBe(5);
+  });
+
+  it("groups usage by attribution skill, excluding records without one", () => {
+    const db = seedDb([
+      { dedupeKey: "sk0", tsEpoch: T0, inputTokens: 999 },
+      { dedupeKey: "sk1", tsEpoch: T0, attributionSkill: "code-review", inputTokens: 10 },
+      { dedupeKey: "sk2", tsEpoch: T0, attributionSkill: "code-review", inputTokens: 20 },
+      { dedupeKey: "sk3", tsEpoch: T0, attributionSkill: "digest", outputTokens: 1_000_000 },
+    ]);
+
+    const skills = getSkillTotals({
+      db,
+      table,
+      sinceEpoch: T0,
+      untilEpoch: T0 + DAY_MS,
+    });
+
+    expect(skills).toHaveLength(2);
+    // 비용 내림차순 — digest(출력 100만 = $50)가 먼저
+    expect(skills[0]).toMatchObject({ skill: "digest" });
+    expect(skills[1]?.tokens.inputTokens).toBe(30);
+    expect(skills[1]?.requestCount).toBe(2);
   });
 
   it("groups sidechain usage by attribution agent", () => {
