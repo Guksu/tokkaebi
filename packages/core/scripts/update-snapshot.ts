@@ -12,10 +12,10 @@ const response = await fetch(LITELLM_PRICES_URL);
 if (!response.ok) throw new Error(`fetch failed: ${response.status}`);
 const raw = (await response.json()) as Record<string, unknown>;
 
-// bare 키와 anthropic/ 프리픽스 키만 유지 — normalize 체인이 조회하는 범위와 일치시켜
-// 스냅샷을 수십 KB로 유지한다 (bedrock·vertex 변형 키는 제외)
+// claude가 들어간 모든 키 유지 — Bedrock(anthropic.claude*, 리전 프리픽스 포함)·
+// Vertex(vertex_ai/claude*) 배포 경로의 모델 ID도 오프라인에서 단가를 찾아야 한다
 const filtered = Object.fromEntries(
-  Object.entries(raw).filter(([key]) => /^(anthropic\/)?claude/.test(key)),
+  Object.entries(raw).filter(([key]) => key.toLowerCase().includes("claude")),
 );
 
 await writeFile(snapshotPath, `${JSON.stringify(filtered, null, 2)}\n`);

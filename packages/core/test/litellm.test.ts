@@ -143,6 +143,18 @@ describe("loadPricingTable", () => {
     );
   });
 
+  it("bundles Bedrock and Vertex keys so enterprise deployments price offline", async () => {
+    const result = await loadPricingTable({
+      cacheDir: await tempCacheDir(),
+      fetchImpl: failingFetch,
+      offline: true,
+    });
+
+    const keys = Object.keys(result.table);
+    expect(keys.some((key) => key.startsWith("anthropic.claude"))).toBe(true);
+    expect(keys.some((key) => key.startsWith("vertex_ai/claude"))).toBe(true);
+  });
+
   it("offline mode never fetches and accepts a stale disk cache", async () => {
     const cacheDir = await tempCacheDir();
     const now = Date.parse("2026-08-11T12:00:00.000Z");
