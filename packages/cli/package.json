@@ -1,6 +1,6 @@
 {
   "name": "tokkaebi",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Self-hosted AI usage tracker — aggregates Claude Code token usage and costs locally",
   "type": "module",
   "license": "MIT",
