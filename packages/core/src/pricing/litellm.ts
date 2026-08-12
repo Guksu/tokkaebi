@@ -83,9 +83,11 @@ const fetchLitellm = async ({ fetchImpl }: { fetchImpl: typeof fetch }) => {
   });
   if (!response.ok) throw new Error(`LiteLLM fetch failed: ${response.status}`);
   const raw = (await response.json()) as Record<string, unknown>;
-  // 디스크 캐시를 수십 KB로 유지 — normalize 체인이 조회하는 키 범위와 일치
+  // claude가 들어간 모든 키를 보존한다 — bare(1P)·anthropic/(프록시)·
+  // anthropic.claude*(Bedrock, 리전 프리픽스 포함)·vertex_ai/(Vertex)까지
+  // 어떤 배포 경로의 모델 ID도 단가를 찾을 수 있어야 한다 (~200KB, 허용 범위)
   return Object.fromEntries(
-    Object.entries(raw).filter(([key]) => /^(anthropic\/)?claude/.test(key)),
+    Object.entries(raw).filter(([key]) => key.toLowerCase().includes("claude")),
   );
 };
 

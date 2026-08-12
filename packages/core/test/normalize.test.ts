@@ -40,4 +40,63 @@ describe("resolveModelPricing", () => {
     expect(resolveModelPricing({ model: "gpt-100", table })).toBeNull();
     expect(resolveModelPricing({ model: "<synthetic>", table })).toBeNull();
   });
+
+  describe("Bedrock model IDs (region prefix + version suffix)", () => {
+    it("matches the LiteLLM bedrock key after stripping the region prefix", () => {
+      const bedrockTable: PricingTable = {
+        "anthropic.claude-opus-4-8-20260212-v1:0": pricing,
+      };
+
+      const resolved = resolveModelPricing({
+        model: "us.anthropic.claude-opus-4-8-20260212-v1:0",
+        table: bedrockTable,
+      });
+
+      expect(resolved?.key).toBe("anthropic.claude-opus-4-8-20260212-v1:0");
+    });
+
+    it("falls all the way back to the bare claude name", () => {
+      // 스냅샷에 bedrock 키가 없어도 리전·anthropic.·-v1:0·날짜를 벗겨 bare 키로 도달
+      const resolved = resolveModelPricing({
+        model: "eu.anthropic.claude-opus-4-8-20260212-v1:0",
+        table,
+      });
+
+      expect(resolved?.key).toBe("claude-opus-4-8");
+    });
+
+    it("handles every documented region prefix", () => {
+      for (const region of ["us", "eu", "apac", "jp", "au", "global"]) {
+        const resolved = resolveModelPricing({
+          model: `${region}.anthropic.claude-opus-4-8-20260212-v1:0`,
+          table,
+        });
+        expect(resolved?.key).toBe("claude-opus-4-8");
+      }
+    });
+  });
+
+  describe("Vertex model IDs (@date)", () => {
+    it("converts @YYYYMMDD into the date-suffix chain", () => {
+      const resolved = resolveModelPricing({
+        model: "claude-opus-4-8@20260212",
+        table,
+      });
+
+      expect(resolved?.key).toBe("claude-opus-4-8");
+    });
+
+    it("matches vertex_ai/-prefixed LiteLLM keys", () => {
+      const vertexTable: PricingTable = {
+        "vertex_ai/claude-vertex-only@20260101": pricing,
+      };
+
+      const resolved = resolveModelPricing({
+        model: "claude-vertex-only@20260101",
+        table: vertexTable,
+      });
+
+      expect(resolved?.key).toBe("vertex_ai/claude-vertex-only@20260101");
+    });
+  });
 });
