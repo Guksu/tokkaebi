@@ -14,6 +14,19 @@ export const dayIndexToDate = ({ dayIndex }: { dayIndex: number }) =>
 
 // 연속 사용일: 오늘 기록이 있으면 오늘부터, 아직 없으면 어제부터 거꾸로 센다
 // (아침에 조회했다고 어제까지의 스트릭이 0이 되면 억울하다)
+// 전체 이력에서 가장 긴 연속 구간 — 구간 시작점(전날이 없는 날)만 스캔해 O(n)
+export const computeLongestStreak = ({ dayIndexes }: { dayIndexes: number[] }) => {
+  const days = new Set(dayIndexes);
+  let best = 0;
+  for (const day of days) {
+    if (days.has(day - 1)) continue;
+    let length = 1;
+    while (days.has(day + length)) length += 1;
+    best = Math.max(best, length);
+  }
+  return best;
+};
+
 export const computeStreak = ({
   dayIndexes,
   todayIndex,

@@ -30,6 +30,23 @@ describe("formatCost", () => {
   });
 });
 
+describe("koreanTokenLabel / goblinTier", async () => {
+  const { goblinTier, koreanTokenLabel } = await import("../src/render/korean.js");
+
+  it("labels milestone thresholds in Korean units", () => {
+    expect(koreanTokenLabel({ count: 1e7 })).toBe("1천만");
+    expect(koreanTokenLabel({ count: 1e8 })).toBe("1억");
+    expect(koreanTokenLabel({ count: 1e11 })).toBe("1000억");
+  });
+
+  it("assigns goblin tiers by cumulative tokens", () => {
+    expect(goblinTier({ totalTokens: 0 })).toBe("🌱 아기 도깨비");
+    expect(goblinTier({ totalTokens: 1e8 })).toBe("방망이 도깨비");
+    expect(goblinTier({ totalTokens: 5e9 })).toBe("불도깨비");
+    expect(goblinTier({ totalTokens: 2e11 })).toBe("전설의 도깨비 신");
+  });
+});
+
 describe("formatTokens", () => {
   it("adds thousands separators", () => {
     expect(formatTokens({ count: 0 })).toBe("0");

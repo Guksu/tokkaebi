@@ -507,4 +507,21 @@ describe("streak", () => {
 
     expect(indexes).toHaveLength(2);
   });
+
+  it("filters usage days by period when given (wrapped의 기간 내 스트릭용)", () => {
+    const db = seedDb([
+      { dedupeKey: "p1", tsEpoch: T0 },
+      { dedupeKey: "p2", tsEpoch: T0 + DAY_MS },
+      { dedupeKey: "p3", tsEpoch: T0 + 40 * DAY_MS },
+    ]);
+
+    const indexes = getUsageDayIndexes({
+      db,
+      tzOffsetMs: 0,
+      sinceEpoch: T0,
+      untilEpoch: T0 + 2 * DAY_MS,
+    });
+
+    expect(indexes).toHaveLength(2);
+  });
 });
