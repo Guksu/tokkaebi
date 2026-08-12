@@ -46,6 +46,36 @@ export const heatLevel = ({ value, max }: { value: number; max: number }) => {
   return 4;
 };
 
+// 마일스톤 임계값의 한글 표기 — 정확한 임계값만 들어온다 (1e6~1e11)
+export const koreanTokenLabel = ({ count }: { count: number }) => {
+  const labels: Record<number, string> = {
+    1e6: "100만",
+    1e7: "1천만",
+    1e8: "1억",
+    1e9: "10억",
+    1e10: "100억",
+    1e11: "1000억",
+  };
+  return labels[count] ?? count.toLocaleString("en-US");
+};
+
+// 누적 토큰 기준 도깨비 등급 — 내림차순 첫 매칭
+const GOBLIN_TIERS: [number, string][] = [
+  [1e11, "전설의 도깨비 신"],
+  [1e10, "도깨비 대왕"],
+  [1e9, "불도깨비"],
+  [1e8, "방망이 도깨비"],
+  [1e7, "뿔난 도깨비"],
+  [1e6, "견습 도깨비"],
+];
+
+export const goblinTier = ({ totalTokens }: { totalTokens: number }) => {
+  for (const [threshold, name] of GOBLIN_TIERS) {
+    if (totalTokens >= threshold) return name;
+  }
+  return "🌱 아기 도깨비";
+};
+
 // 월 예산 게이지 — 초과분은 넘치지 않게 클램프하고 색으로 경고한다
 export const budgetGauge = ({
   spent,

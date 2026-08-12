@@ -152,4 +152,16 @@ withCommonOptions(
     ),
 );
 
+withCommonOptions(
+  program
+    .command("wrapped")
+    .description("도깨비 결산 — 이번 달(기본) 또는 연간 하이라이트와 등급")
+    .option("--year [yyyy]", "연간 결산 (연도 생략 시 올해)"),
+).action(
+  ({ year, json, sync }: { year?: boolean | string; json: boolean; sync: boolean }) =>
+    import("./commands/wrapped.js").then(({ runWrapped }) =>
+      runWrapped({ year: year ?? false, json, sync }),
+    ),
+);
+
 await program.parseAsync();

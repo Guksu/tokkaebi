@@ -1,11 +1,16 @@
 import {
   computeStreak,
+  COST_MILESTONES,
+  findNewMilestone,
   getPeriodSummary,
   getProjectBranchTotals,
   getUsageDayIndexes,
   projectMonthlySpend,
   readConfig,
   toDayIndex,
+  TOKEN_MILESTONES,
+  writeConfig,
+  type TokenCounts,
 } from "@tokkaebi/core";
 import pc from "picocolors";
 import { createContext, warnUnknownModels } from "../context.js";
@@ -16,7 +21,13 @@ import {
   startOfLocalMonth,
 } from "../dates.js";
 import { formatCost, shortenPath } from "../render/format.js";
-import { budgetGauge, costBar, koreanWeekday } from "../render/korean.js";
+import {
+  budgetGauge,
+  costBar,
+  goblinTier,
+  koreanTokenLabel,
+  koreanWeekday,
+} from "../render/korean.js";
 import { costCell, tokenCells, usageTable } from "../render/table.js";
 import { paceLine } from "./budget.js";
 
@@ -41,6 +52,47 @@ export const runToday = async ({ json, sync }: { json: boolean; sync: boolean })
   });
 
   const config = await readConfig({});
+
+  // 마일스톤: 누적 합계가 임계값을 새로 넘었을 때 1회만 축하한다.
+  // 조회 명령이 파일을 쓰는 유일한 예외 경로 — 실패해도 출력은 성공해야 한다.
+  const sumTokens = ({ tokens }: { tokens: TokenCounts }) =>
+    tokens.inputTokens +
+    tokens.outputTokens +
+    tokens.cacheReadTokens +
+    tokens.cache5mTokens +
+    tokens.cache1hTokens;
+  const cumulative = getPeriodSummary({
+    db,
+    table: pricing.table,
+    sinceEpoch: 0,
+    untilEpoch: Number.MAX_SAFE_INTEGER,
+  });
+  const cumulativeTokens = sumTokens({ tokens: cumulative.totals.tokens });
+  const tokenMilestone = findNewMilestone({
+    total: cumulativeTokens,
+    celebrated: config.milestones?.celebratedTokens ?? 0,
+    thresholds: TOKEN_MILESTONES,
+  });
+  const costMilestone = findNewMilestone({
+    total: cumulative.totals.totalCost,
+    celebrated: config.milestones?.celebratedCostUsd ?? 0,
+    thresholds: COST_MILESTONES,
+  });
+  if (tokenMilestone != null || costMilestone != null) {
+    try {
+      await writeConfig({
+        config: {
+          milestones: {
+            celebratedTokens: tokenMilestone ?? config.milestones?.celebratedTokens ?? 0,
+            celebratedCostUsd: costMilestone ?? config.milestones?.celebratedCostUsd ?? 0,
+          },
+        },
+      });
+    } catch {
+      // 축하 상태 저장 실패는 조용히 무시 — 다음 실행에서 다시 축하될 뿐이다
+    }
+  }
+
   const budgetUsd = config.budget?.monthlyUsd ?? null;
   const monthSpentUsd =
     budgetUsd == null
@@ -67,9 +119,15 @@ export const runToday = async ({ json, sync }: { json: boolean; sync: boolean })
               daysInMonth,
             }),
           };
+    const milestone =
+      tokenMilestone != null
+        ? { type: "tokens", threshold: tokenMilestone }
+        : costMilestone != null
+          ? { type: "cost", threshold: costMilestone }
+          : null;
     console.log(
       JSON.stringify(
-        { date: now.toISOString(), summary, projectBranches, streak, budget },
+        { date: now.toISOString(), summary, projectBranches, streak, budget, milestone },
         null,
         2,
       ),
@@ -84,8 +142,25 @@ export const runToday = async ({ json, sync }: { json: boolean; sync: boolean })
     )}\n`,
   );
 
+  const printMilestones = () => {
+    if (tokenMilestone != null) {
+      console.log(
+        pc.yellow(
+          `🎉 누적 ${koreanTokenLabel({ count: tokenMilestone })} 토큰 돌파! ${pc.bold(
+            goblinTier({ totalTokens: cumulativeTokens }),
+          )} 등급입니다`,
+        ),
+      );
+    }
+    if (costMilestone != null) {
+      console.log(pc.yellow(`🎉 누적 지출 ${formatCost({ usd: costMilestone })} 돌파!`));
+    }
+  };
+
   if (summary.totals.requestCount === 0) {
     console.log(pc.dim("오늘 기록된 사용량이 없습니다."));
+    // 마일스톤은 이미 소비(config 기록)됐으므로 빈 날에도 반드시 보여준다
+    printMilestones();
     return;
   }
 
@@ -150,5 +225,6 @@ export const runToday = async ({ json, sync }: { json: boolean; sync: boolean })
       })}`,
     );
   }
+  printMilestones();
   warnUnknownModels({ unknownModels: summary.unknownModels });
 };

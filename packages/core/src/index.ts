@@ -22,7 +22,17 @@ export {
   type PeriodTotals,
   type SessionSummary,
 } from "./aggregate/queries.js";
-export { computeStreak, dayIndexToDate, toDayIndex } from "./aggregate/streak.js";
+export {
+  computeLongestStreak,
+  computeStreak,
+  dayIndexToDate,
+  toDayIndex,
+} from "./aggregate/streak.js";
+export {
+  COST_MILESTONES,
+  findNewMilestone,
+  TOKEN_MILESTONES,
+} from "./milestones.js";
 export { projectMonthlySpend } from "./aggregate/pace.js";
 export {
   dayIndexToWeekday,
