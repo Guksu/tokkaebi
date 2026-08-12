@@ -1,6 +1,6 @@
 {
   "name": "@tokkaebi/core",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Parser, pricing, and aggregation engine for tokkaebi",
   "type": "module",
   "license": "MIT",
